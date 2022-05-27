@@ -7,8 +7,8 @@ import datetime
 def menu():
     while True:
         choice = input("""***** PRODUCT DATABASE *****\n
-            \r\tv: View details of a single product
-            \r\ta: Add a new product
+            \r\tv: View details of a product
+            \r\ta: Add a new product to database
             \r\tb: Backup current database
             \r\tq: Exit
         \nWhat would you like to do?
@@ -36,6 +36,12 @@ def add_csv():
                                       product_quantity=product_quantity,
                                       date_updated=date_updated)
                 session.add(new_product)
+            else:
+                new_date_updated = clean_date(row[3])
+                if product_in_db.date_updated < new_date_updated:
+                    product_in_db.product_price = clean_price(row[1])
+                    product_in_db.product_quantity = clean_quantity(row[2])
+                    product_in_db.date_updated = new_date_updated
         session.commit()
 
 
@@ -112,41 +118,43 @@ def view_product_detail():
 
 def add_product():
     print("\nTo add a new product we need some product info. ")
-    product_name = input("Name: ")
+    product_new_name = input("Name: ")
     price_error = True
     while price_error:
-        product_price = input("Price (Ex: $4.30): ")
-        product_price = clean_price(product_price)
-        if type(product_price) == int:
+        product_new_price = input("Price (Ex: $4.30): ")
+        product_new_price = clean_price(product_new_price)
+        if type(product_new_price) == int:
             price_error = False
 
     quantity_error = True
     while quantity_error:
-        product_quantity = input("Quantity (Ex: 97): ")
-        product_quantity = clean_quantity(product_quantity)
-        if type(product_quantity) == int:
+        product_new_quantity = input("Quantity (Ex: 97): ")
+        product_new_quantity = clean_quantity(product_new_quantity)
+        if type(product_new_quantity) == int:
             quantity_error = False
 
     date_error = True
     while date_error:
-        date_updated = input("Updated (Ex: 11/1/2018): ")
-        date_updated = clean_date(date_updated)
-        if type(date_updated) == datetime.date:
+        new_date_updated = input("Updated (Ex: 11/1/2018): ")
+        new_date_updated = clean_date(new_date_updated)
+        if type(new_date_updated) == datetime.date:
             date_error = False
 
-    new_product = Product(product_name=product_name,
-                          product_price=product_price,
-                          product_quantity=product_quantity,
-                          date_updated=date_updated)
-    product_in_db = session.query(Product).filter(Product.product_name == new_product.product_name).one_or_none()
+    product_in_db = session.query(Product).filter(Product.product_name == product_new_name).one_or_none()
     if product_in_db == None:
+        new_product = Product(product_name=product_new_name,
+                              product_price=product_new_price,
+                              product_quantity=product_new_quantity,
+                              date_updated=new_date_updated)
         session.add(new_product)
-        session.commit()
-        print(f"Successfully added a new product. Added new product: {new_product}")
-        time.sleep(1)
     else:
-        new_product = session.query(Product)
-        return add_product()
+        if product_in_db.date_updated < new_date_updated:
+            product_in_db.product_price = product_new_price
+            product_in_db.product_quantity = product_new_quantity
+            product_in_db.date_updated = new_date_updated
+            print("Product name already exists. We've updated the database to the most recent date. ")
+    session.commit()
+    time.sleep(1)
 
 
 def handle_backup():
@@ -187,4 +195,3 @@ if __name__ == "__main__":
     Base.metadata.create_all(engine)
     add_csv()
     app()
-
